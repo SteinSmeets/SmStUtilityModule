@@ -1,0 +1,23 @@
+{
+  "name": "smst-utility-module",
+  "version": "1.0.0",
+  "description": "Module for Angular 2+ containing some useful components, directives, services and pipes",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SteinSmeets/SmStUtilityModule.git"
+  },
+  "keywords": [
+    "Angular2",
+    "zoom"
+  ],
+  "author": "Stein Smeets",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/SteinSmeets/SmStUtilityModule/issues"
+  },
+  "homepage": "https://github.com/SteinSmeets/SmStUtilityModule#readme"
+}

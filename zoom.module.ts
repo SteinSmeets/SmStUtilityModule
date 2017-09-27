@@ -1,0 +1,23 @@
+import { BrowserModule } from '@angular/platform-browser';
+import { NgModule } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { HttpModule } from '@angular/http';
+
+import { AppComponent } from './app.component';
+import {ZoomDirective} from './directive/zoom.directive';
+
+@NgModule({
+  declarations: [
+    AppComponent,
+    ZoomDirective
+  ],
+  imports: [
+    BrowserModule,
+    FormsModule,
+    HttpModule
+  ],
+  providers: [],
+  bootstrap: [AppComponent],
+  exports: [ ZoomDirective ]
+})
+export class SmStZoomModule { }
