@@ -1,5 +1,29 @@
 import { ElementRef, OnChanges, OnInit, Renderer2 } from '@angular/core';
-export declare class ZoomDirective implements OnInit, OnChanges {
+/**
+ * SmStZoomDirective
+ *
+ * In order for this directive to work, the template structure should be as follows:
+ * <div id='container'>
+ *     <div id='targetId'> ==> content container wrapper
+ *      <div> </div> ==> actual content container
+ *      </div>
+ * </div>
+ *
+ *@Input
+ * minZoom : minimum allowed zoom.
+ *          default: 1
+ *
+ * maxZoom : maximum allowed zoom.
+ *          default: 2
+ *
+ * zoomTargetId: id of the content container wrapper.
+ *
+ *
+ * @Output
+ *
+ * TODO
+ */
+export declare class SmStZoomDirective implements OnInit, OnChanges {
     private render;
     private elRef;
     private zoomStep;

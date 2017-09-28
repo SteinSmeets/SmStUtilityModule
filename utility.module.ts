@@ -1,13 +1,13 @@
 import { NgModule } from '@angular/core';
-import {ZoomDirective} from './directive/zoom.directive';
+import {SmStZoomDirective} from './directive/zoom.directive';
 
 @NgModule({
   declarations: [
-    ZoomDirective
+    SmStZoomDirective
   ],
   imports: [],
   providers: [],
   bootstrap: [],
-  exports: [ ZoomDirective ]
+  exports: [ SmStZoomDirective ]
 })
 export class SmStUtilityModule { }

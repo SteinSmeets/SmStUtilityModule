@@ -1,6 +1,30 @@
 import { Directive, ElementRef, HostListener, Input, Renderer2 } from '@angular/core';
-var ZoomDirective = /** @class */ (function () {
-    function ZoomDirective(render, elRef) {
+/**
+ * SmStZoomDirective
+ *
+ * In order for this directive to work, the template structure should be as follows:
+ * <div id='container'>
+ *     <div id='targetId'> ==> content container wrapper
+ *      <div> </div> ==> actual content container
+ *      </div>
+ * </div>
+ *
+ *@Input
+ * minZoom : minimum allowed zoom.
+ *          default: 1
+ *
+ * maxZoom : maximum allowed zoom.
+ *          default: 2
+ *
+ * zoomTargetId: id of the content container wrapper.
+ *
+ *
+ * @Output
+ *
+ * TODO
+ */
+var SmStZoomDirective = /** @class */ (function () {
+    function SmStZoomDirective(render, elRef) {
         this.render = render;
         this.elRef = elRef;
         this.zoomStep = 0.1;
@@ -11,7 +35,7 @@ var ZoomDirective = /** @class */ (function () {
         this.maxZoom = 2;
         this.zoomTargetId = 'zoomTarget';
     }
-    ZoomDirective.prototype.onWheel = function (event) {
+    SmStZoomDirective.prototype.onWheel = function (event) {
         if (event.ctrlKey) {
             event.preventDefault();
             var ratios = this.getContainerRatios();
@@ -19,13 +43,13 @@ var ZoomDirective = /** @class */ (function () {
             this.zoomIntoContainer(this.zoomPoint, ratios, (event.deltaY < 0) ? this.zoomStep : -this.zoomStep);
         }
     };
-    ZoomDirective.prototype.onTouch = function (event) {
+    SmStZoomDirective.prototype.onTouch = function (event) {
         event.preventDefault();
         var ratios = this.getContainerRatios();
         this.zoomPoint = { x: event.center.x, y: event.center.y };
-        this.zoomIntoContainer(this.zoomPoint, ratios, this.zoomStep);
+        this.zoomIntoContainer(this.zoomPoint, ratios, -this.zoomStep);
     };
-    ZoomDirective.prototype.onPinchIn = function (event) {
+    SmStZoomDirective.prototype.onPinchIn = function (event) {
         if (event.velocityY === 0) {
             return;
         }
@@ -33,7 +57,7 @@ var ZoomDirective = /** @class */ (function () {
         this.zoomPoint = { x: event.center.x, y: event.center.y };
         this.zoomIntoContainer(this.zoomPoint, ratios, -this.pinchStep);
     };
-    ZoomDirective.prototype.onPinchOut = function (event) {
+    SmStZoomDirective.prototype.onPinchOut = function (event) {
         if (event.velocityY === 0) {
             return;
         }
@@ -41,19 +65,19 @@ var ZoomDirective = /** @class */ (function () {
         this.zoomPoint = { x: event.center.x, y: event.center.y };
         this.zoomIntoContainer(this.zoomPoint, ratios, this.pinchStep);
     };
-    ZoomDirective.prototype.getContainerRatios = function () {
+    SmStZoomDirective.prototype.getContainerRatios = function () {
         var ratioX, ratioY;
-        if (this.elRef.nativeElement.scrollWidth > this.elRef.nativeElement.scrollHeight) {
-            ratioX = 1;
-            ratioY = this.elRef.nativeElement.scrollHeight / this.elRef.nativeElement.scrollWidth;
+        if (this.zoomTarget.getBoundingClientRect().height > this.zoomTarget.getBoundingClientRect().width) {
+            ratioX = this.zoomTarget.getBoundingClientRect().width / this.zoomTarget.getBoundingClientRect().height;
+            ratioY = 1;
         }
         else {
-            ratioX = this.elRef.nativeElement.scrollWidth / this.elRef.nativeElement.scrollHeight;
-            ratioY = 1;
+            ratioX = 1;
+            ratioY = this.zoomTarget.getBoundingClientRect().height / this.zoomTarget.getBoundingClientRect().width;
         }
         return { x: ratioX, y: ratioY };
     };
-    ZoomDirective.prototype.zoomIntoContainer = function (zoomPoint, ratios, zoomStep) {
+    SmStZoomDirective.prototype.zoomIntoContainer = function (zoomPoint, ratios, zoomStep) {
         var prevDif = {
             right: this.zoomTarget.getBoundingClientRect().right - this.zoomPoint.x,
             bottom: this.zoomTarget.getBoundingClientRect().bottom - this.zoomPoint.y
@@ -61,18 +85,25 @@ var ZoomDirective = /** @class */ (function () {
         if (!this.setNewZoomLevel(zoomStep)) {
             return;
         }
-        this.render.setStyle(this.zoomTarget, 'transform', 'scale(' + this.currentZoom + ')');
+        // scale the actual content
+        this.render.setStyle(this.zoomTarget.firstElementChild, 'transform-origin', '0 0');
+        this.render.setStyle(this.zoomTarget.firstElementChild, 'transform', 'scale(' + this.currentZoom + ')');
+        // set width and height of the content container so we keep scroll over the complete contents.
+        this.render.setStyle(this.zoomTarget, 'width', this.zoomTarget.firstElementChild.getBoundingClientRect().width + 'px');
+        this.render.setStyle(this.zoomTarget, 'height', this.zoomTarget.firstElementChild.getBoundingClientRect().height + 'px');
         var afterDif = {
             right: this.zoomTarget.getBoundingClientRect().right - this.zoomPoint.x,
             bottom: this.zoomTarget.getBoundingClientRect().bottom - this.zoomPoint.y
         };
         // Scroll to center
-        var scrollLeft = ((afterDif.right - prevDif.right) / this.maxZoom); // * ratios.x;
-        var scrollTop = ((afterDif.bottom - prevDif.bottom) / this.maxZoom); // * ratios.y;
+        var xMultiplier = (1 - ratios.x) || 0.5;
+        var yMultiplier = (1 - ratios.y) || 0.5;
+        var scrollLeft = ((afterDif.right - prevDif.right) * xMultiplier);
+        var scrollTop = ((afterDif.bottom - prevDif.bottom) * yMultiplier);
         this.elRef.nativeElement.scrollLeft += scrollLeft + this.getCenterDeviation(this.getTargetCenter(), zoomPoint, this.getContainerRatios(), zoomStep).x;
         this.elRef.nativeElement.scrollTop += scrollTop + this.getCenterDeviation(this.getTargetCenter(), zoomPoint, this.getContainerRatios(), zoomStep).y;
     };
-    ZoomDirective.prototype.setNewZoomLevel = function (zoomStep) {
+    SmStZoomDirective.prototype.setNewZoomLevel = function (zoomStep) {
         this.currentZoom += zoomStep;
         if (this.currentZoom < this.minZoom) {
             this.currentZoom = this.minZoom;
@@ -89,11 +120,11 @@ var ZoomDirective = /** @class */ (function () {
         this.previousZoom = this.currentZoom;
         return true;
     };
-    ZoomDirective.prototype.getTargetCenter = function () {
+    SmStZoomDirective.prototype.getTargetCenter = function () {
         var rectangle = this.elRef.nativeElement.getBoundingClientRect();
         return { x: rectangle.left + (rectangle.width / 2), y: rectangle.top + (rectangle.height / 2) };
     };
-    ZoomDirective.prototype.getCenterDeviation = function (center, zoomPoint, ratio, zoomStep) {
+    SmStZoomDirective.prototype.getCenterDeviation = function (center, zoomPoint, ratio, zoomStep) {
         var _this = this;
         if (this.zoomPointLockTimeout) {
             clearTimeout(this.zoomPointLockTimeout);
@@ -108,25 +139,25 @@ var ZoomDirective = /** @class */ (function () {
         }
         return this.currentDeviation;
     };
-    ZoomDirective.prototype.ngOnInit = function () {
+    SmStZoomDirective.prototype.ngOnInit = function () {
         this.zoomTarget = document.getElementById(this.zoomTargetId);
     };
-    ZoomDirective.prototype.ngOnChanges = function (changes) {
+    SmStZoomDirective.prototype.ngOnChanges = function (changes) {
         if (changes.zoomTargetId) {
             this.zoomTarget = document.getElementById(this.zoomTargetId);
         }
     };
-    ZoomDirective.decorators = [
+    SmStZoomDirective.decorators = [
         { type: Directive, args: [{
-                    selector: '[toiZoom]'
+                    selector: '[smstZoom]'
                 },] },
     ];
     /** @nocollapse */
-    ZoomDirective.ctorParameters = function () { return [
+    SmStZoomDirective.ctorParameters = function () { return [
         { type: Renderer2, },
         { type: ElementRef, },
     ]; };
-    ZoomDirective.propDecorators = {
+    SmStZoomDirective.propDecorators = {
         'minZoom': [{ type: Input, args: ['minZoom',] },],
         'maxZoom': [{ type: Input, args: ['maxZoom',] },],
         'zoomTargetId': [{ type: Input, args: ['zoomTargetId',] },],
@@ -135,9 +166,9 @@ var ZoomDirective = /** @class */ (function () {
         'onPinchIn': [{ type: HostListener, args: ['pinchin', ['$event'],] },],
         'onPinchOut': [{ type: HostListener, args: ['pinchout', ['$event'],] },],
     };
-    return ZoomDirective;
+    return SmStZoomDirective;
 }());
-export { ZoomDirective };
+export { SmStZoomDirective };
 var Point = /** @class */ (function () {
     function Point() {
     }

@@ -1,17 +1,17 @@
 import { NgModule } from '@angular/core';
-import { ZoomDirective } from './directive/zoom.directive';
+import { SmStZoomDirective } from './directive/zoom.directive';
 var SmStUtilityModule = /** @class */ (function () {
     function SmStUtilityModule() {
     }
     SmStUtilityModule.decorators = [
         { type: NgModule, args: [{
                     declarations: [
-                        ZoomDirective
+                        SmStZoomDirective
                     ],
                     imports: [],
                     providers: [],
                     bootstrap: [],
-                    exports: [ZoomDirective]
+                    exports: [SmStZoomDirective]
                 },] },
     ];
     /** @nocollapse */
