@@ -8,7 +8,7 @@ export class ZoomDirective implements OnInit, OnChanges {
   private zoomStep: number;
   private pinchStep: number;
   private currentZoom: number;
-  private zoomTarget: Element;
+  private zoomTarget: any;
   private zoomPoint: Point; // Position of the mouse on the start of the wheel event.
   private previousZoom: number;
 
@@ -21,7 +21,7 @@ export class ZoomDirective implements OnInit, OnChanges {
   @Input('maxZoom')maxZoom: number;
   @Input('zoomTargetId') zoomTargetId: string;
 
-  @HostListener('wheel', ['$event']) onWheel(event) {
+  @HostListener('wheel', ['$event']) onWheel(event:any) {
     if (event.ctrlKey) {
       event.preventDefault();
       const ratios = this.getContainerRatios();
@@ -29,19 +29,19 @@ export class ZoomDirective implements OnInit, OnChanges {
       this.zoomIntoContainer(this.zoomPoint, ratios, (event.deltaY < 0 ) ? this.zoomStep : -this.zoomStep);
     }
   }
-  @HostListener('tap', ['$event']) onTouch(event) {
+  @HostListener('tap', ['$event']) onTouch(event:any) {
     event.preventDefault();
     const ratios = this.getContainerRatios();
     this.zoomPoint = {x: event.center.x, y: event.center.y} ;
     this.zoomIntoContainer(this.zoomPoint, ratios, this.zoomStep);
   }
-  @HostListener('pinchin', ['$event']) onPinchIn( event) {
+  @HostListener('pinchin', ['$event']) onPinchIn(event:any) {
     if (event.velocityY === 0) { return; }
     const ratios = this.getContainerRatios();
     this.zoomPoint = {x: event.center.x, y: event.center.y};
     this.zoomIntoContainer(this.zoomPoint, ratios, -this.pinchStep);
   }
-  @HostListener('pinchout', ['$event']) onPinchOut( event) {
+  @HostListener('pinchout', ['$event']) onPinchOut(event:any) {
     if (event.velocityY === 0) { return; }
     const ratios = this.getContainerRatios();
     this.zoomPoint = {x: event.center.x, y: event.center.y};
@@ -132,7 +132,7 @@ export class ZoomDirective implements OnInit, OnChanges {
     this.zoomTarget = document.getElementById(this.zoomTargetId);
   }
 
-  ngOnChanges(changes) {
+  ngOnChanges(changes:any) {
     if (changes.zoomTargetId ) {
       this.zoomTarget = document.getElementById(this.zoomTargetId);
     }
