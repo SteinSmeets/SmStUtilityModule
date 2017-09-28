@@ -1,9 +1,33 @@
 import {Directive, ElementRef, HostListener, Input, OnChanges, OnInit, Renderer2} from '@angular/core';
 
+/**
+ * SmStZoomDirective
+ *
+ * In order for this directive to work, the template structure should be as follows:
+ * <div id='container'>
+ *     <div id='targetId'> ==> content container wrapper
+ *      <div> </div> ==> actual content container
+ *      </div>
+ * </div>
+ *
+ *@Input
+ * minZoom : minimum allowed zoom.
+ *          default: 1
+ *
+ * maxZoom : maximum allowed zoom.
+ *          default: 2
+ *
+ * zoomTargetId: id of the content container wrapper.
+ *
+ *
+ * @Output
+ *
+ * TODO
+ */
 @Directive({
-  selector: '[toiZoom]'
+  selector: '[smstZoom]'
 })
-export class ZoomDirective implements OnInit, OnChanges {
+export class SmStZoomDirective implements OnInit, OnChanges {
 
   private zoomStep: number;
   private pinchStep: number;
@@ -33,7 +57,7 @@ export class ZoomDirective implements OnInit, OnChanges {
     event.preventDefault();
     const ratios = this.getContainerRatios();
     this.zoomPoint = {x: event.center.x, y: event.center.y} ;
-    this.zoomIntoContainer(this.zoomPoint, ratios, this.zoomStep);
+    this.zoomIntoContainer(this.zoomPoint, ratios, -this.zoomStep);
   }
   @HostListener('pinchin', ['$event']) onPinchIn(event:any) {
     if (event.velocityY === 0) { return; }
@@ -60,12 +84,12 @@ export class ZoomDirective implements OnInit, OnChanges {
 
   private getContainerRatios(): any {
     let ratioX, ratioY;
-    if (this.elRef.nativeElement.scrollWidth > this.elRef.nativeElement.scrollHeight) {
-      ratioX = 1;
-      ratioY = this.elRef.nativeElement.scrollHeight / this.elRef.nativeElement.scrollWidth;
-    }else {
-      ratioX = this.elRef.nativeElement.scrollWidth / this.elRef.nativeElement.scrollHeight;
+    if (this.zoomTarget.getBoundingClientRect().height > this.zoomTarget.getBoundingClientRect().width) {
+      ratioX = this.zoomTarget.getBoundingClientRect().width / this.zoomTarget.getBoundingClientRect().height;
       ratioY = 1;
+    }else {
+      ratioX = 1;
+      ratioY = this.zoomTarget.getBoundingClientRect().height / this.zoomTarget.getBoundingClientRect().width;
     }
     return {x: ratioX, y: ratioY};
   }
@@ -76,16 +100,24 @@ export class ZoomDirective implements OnInit, OnChanges {
     };
 
     if (!this.setNewZoomLevel(zoomStep)) { return; }
+    // scale the actual content
+    this.render.setStyle(this.zoomTarget.firstElementChild, 'transform-origin', '0 0');
+    this.render.setStyle(this.zoomTarget.firstElementChild, 'transform', 'scale(' + this.currentZoom + ')');
+    // set width and height of the content container so we keep scroll over the complete contents.
+    this.render.setStyle(this.zoomTarget, 'width', this.zoomTarget.firstElementChild.getBoundingClientRect().width + 'px');
+    this.render.setStyle(this.zoomTarget, 'height', this.zoomTarget.firstElementChild.getBoundingClientRect().height + 'px');
 
-    this.render.setStyle(this.zoomTarget, 'transform', 'scale(' + this.currentZoom + ')');
     const afterDif = {
       right: this.zoomTarget.getBoundingClientRect().right - this.zoomPoint.x ,
       bottom: this.zoomTarget.getBoundingClientRect().bottom - this.zoomPoint.y
     };
 
     // Scroll to center
-    const scrollLeft = ((afterDif.right - prevDif.right) / this.maxZoom ); // * ratios.x;
-    const scrollTop = ((afterDif.bottom - prevDif.bottom) / this.maxZoom ); // * ratios.y;
+    const xMultiplier = (1 - ratios.x) || 0.5;
+    const yMultiplier = (1 - ratios.y) || 0.5;
+
+    const scrollLeft = ((afterDif.right - prevDif.right) * xMultiplier);
+    const scrollTop = ((afterDif.bottom - prevDif.bottom) * yMultiplier);
 
     this.elRef.nativeElement.scrollLeft += scrollLeft + this.getCenterDeviation(this.getTargetCenter(),
         zoomPoint, this.getContainerRatios(), zoomStep).x;
