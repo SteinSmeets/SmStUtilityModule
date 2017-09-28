@@ -39,15 +39,16 @@ export declare class SmStZoomDirective implements OnInit, OnChanges {
     maxZoom: number;
     zoomTargetId: string;
     onWheel(event: any): void;
-    onTouch(event: any): void;
     onPinchIn(event: any): void;
     onPinchOut(event: any): void;
     constructor(render: Renderer2, elRef: ElementRef);
     private getContainerRatios();
     private zoomIntoContainer(zoomPoint, ratios, zoomStep);
+    private getScrollHandleSize(direction);
     private setNewZoomLevel(zoomStep);
     private getTargetCenter();
     private getCenterDeviation(center, zoomPoint, ratio, zoomStep);
+    private fitTargetContainerToContents();
     ngOnInit(): void;
     ngOnChanges(changes: any): void;
 }

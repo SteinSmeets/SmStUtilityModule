@@ -43,12 +43,6 @@ var SmStZoomDirective = /** @class */ (function () {
             this.zoomIntoContainer(this.zoomPoint, ratios, (event.deltaY < 0) ? this.zoomStep : -this.zoomStep);
         }
     };
-    SmStZoomDirective.prototype.onTouch = function (event) {
-        event.preventDefault();
-        var ratios = this.getContainerRatios();
-        this.zoomPoint = { x: event.center.x, y: event.center.y };
-        this.zoomIntoContainer(this.zoomPoint, ratios, -this.zoomStep);
-    };
     SmStZoomDirective.prototype.onPinchIn = function (event) {
         if (event.velocityY === 0) {
             return;
@@ -66,21 +60,24 @@ var SmStZoomDirective = /** @class */ (function () {
         this.zoomIntoContainer(this.zoomPoint, ratios, this.pinchStep);
     };
     SmStZoomDirective.prototype.getContainerRatios = function () {
+        if (this.zoomTarget.getBoundingClientRect().height < 1 || this.zoomTarget.getBoundingClientRect().width < 1) {
+            this.fitTargetContainerToContents();
+        }
         var ratioX, ratioY;
         if (this.zoomTarget.getBoundingClientRect().height > this.zoomTarget.getBoundingClientRect().width) {
-            ratioX = this.zoomTarget.getBoundingClientRect().width / this.zoomTarget.getBoundingClientRect().height;
-            ratioY = 1;
+            ratioX = 1;
+            ratioY = this.zoomTarget.getBoundingClientRect().width / this.zoomTarget.getBoundingClientRect().height;
         }
         else {
-            ratioX = 1;
-            ratioY = this.zoomTarget.getBoundingClientRect().height / this.zoomTarget.getBoundingClientRect().width;
+            ratioX = this.zoomTarget.getBoundingClientRect().height / this.zoomTarget.getBoundingClientRect().width;
+            ratioY = 1;
         }
         return { x: ratioX, y: ratioY };
     };
     SmStZoomDirective.prototype.zoomIntoContainer = function (zoomPoint, ratios, zoomStep) {
         var prevDif = {
-            right: this.zoomTarget.getBoundingClientRect().right - this.zoomPoint.x,
-            bottom: this.zoomTarget.getBoundingClientRect().bottom - this.zoomPoint.y
+            right: this.zoomTarget.firstElementChild.getBoundingClientRect().right - this.zoomPoint.x,
+            bottom: this.zoomTarget.firstElementChild.getBoundingClientRect().bottom - this.zoomPoint.y
         };
         if (!this.setNewZoomLevel(zoomStep)) {
             return;
@@ -88,20 +85,26 @@ var SmStZoomDirective = /** @class */ (function () {
         // scale the actual content
         this.render.setStyle(this.zoomTarget.firstElementChild, 'transform-origin', '0 0');
         this.render.setStyle(this.zoomTarget.firstElementChild, 'transform', 'scale(' + this.currentZoom + ')');
-        // set width and height of the content container so we keep scroll over the complete contents.
-        this.render.setStyle(this.zoomTarget, 'width', this.zoomTarget.firstElementChild.getBoundingClientRect().width + 'px');
-        this.render.setStyle(this.zoomTarget, 'height', this.zoomTarget.firstElementChild.getBoundingClientRect().height + 'px');
+        this.fitTargetContainerToContents();
         var afterDif = {
-            right: this.zoomTarget.getBoundingClientRect().right - this.zoomPoint.x,
-            bottom: this.zoomTarget.getBoundingClientRect().bottom - this.zoomPoint.y
+            right: this.zoomTarget.firstElementChild.getBoundingClientRect().right - this.zoomPoint.x,
+            bottom: this.zoomTarget.firstElementChild.getBoundingClientRect().bottom - this.zoomPoint.y
         };
         // Scroll to center
-        var xMultiplier = (1 - ratios.x) || 0.5;
-        var yMultiplier = (1 - ratios.y) || 0.5;
+        var xMultiplier = (this.elRef.nativeElement.scrollLeft + this.getScrollHandleSize('x')) / this.elRef.nativeElement.scrollWidth;
+        var yMultiplier = (this.elRef.nativeElement.scrollTop + this.getScrollHandleSize('y')) / this.elRef.nativeElement.scrollHeight;
         var scrollLeft = ((afterDif.right - prevDif.right) * xMultiplier);
         var scrollTop = ((afterDif.bottom - prevDif.bottom) * yMultiplier);
-        this.elRef.nativeElement.scrollLeft += scrollLeft + this.getCenterDeviation(this.getTargetCenter(), zoomPoint, this.getContainerRatios(), zoomStep).x;
-        this.elRef.nativeElement.scrollTop += scrollTop + this.getCenterDeviation(this.getTargetCenter(), zoomPoint, this.getContainerRatios(), zoomStep).y;
+        this.elRef.nativeElement.scrollLeft += scrollLeft + this.getCenterDeviation(this.getTargetCenter(), zoomPoint, ratios, zoomStep).x;
+        this.elRef.nativeElement.scrollTop += scrollTop + this.getCenterDeviation(this.getTargetCenter(), zoomPoint, ratios, zoomStep).y;
+    };
+    SmStZoomDirective.prototype.getScrollHandleSize = function (direction) {
+        if (direction === 'x') {
+            return this.elRef.nativeElement.clientWidth / (this.zoomTarget.clientWidth / this.elRef.nativeElement.clientWidth);
+        }
+        else {
+            return this.elRef.nativeElement.clientHeight / (this.zoomTarget.clientHeight / this.elRef.nativeElement.clientHeight);
+        }
     };
     SmStZoomDirective.prototype.setNewZoomLevel = function (zoomStep) {
         this.currentZoom += zoomStep;
@@ -139,6 +142,11 @@ var SmStZoomDirective = /** @class */ (function () {
         }
         return this.currentDeviation;
     };
+    SmStZoomDirective.prototype.fitTargetContainerToContents = function () {
+        // set width and height of the content container so we keep scroll over the complete contents.
+        this.render.setStyle(this.zoomTarget, 'width', this.zoomTarget.firstElementChild.clientWidth + 'px');
+        this.render.setStyle(this.zoomTarget, 'height', this.zoomTarget.firstElementChild.clientHeight + 'px');
+    };
     SmStZoomDirective.prototype.ngOnInit = function () {
         this.zoomTarget = document.getElementById(this.zoomTargetId);
     };
@@ -162,7 +170,6 @@ var SmStZoomDirective = /** @class */ (function () {
         'maxZoom': [{ type: Input, args: ['maxZoom',] },],
         'zoomTargetId': [{ type: Input, args: ['zoomTargetId',] },],
         'onWheel': [{ type: HostListener, args: ['wheel', ['$event'],] },],
-        'onTouch': [{ type: HostListener, args: ['tap', ['$event'],] },],
         'onPinchIn': [{ type: HostListener, args: ['pinchin', ['$event'],] },],
         'onPinchOut': [{ type: HostListener, args: ['pinchout', ['$event'],] },],
     };

@@ -53,12 +53,6 @@ export class SmStZoomDirective implements OnInit, OnChanges {
       this.zoomIntoContainer(this.zoomPoint, ratios, (event.deltaY < 0 ) ? this.zoomStep : -this.zoomStep);
     }
   }
-  @HostListener('tap', ['$event']) onTouch(event:any) {
-    event.preventDefault();
-    const ratios = this.getContainerRatios();
-    this.zoomPoint = {x: event.center.x, y: event.center.y} ;
-    this.zoomIntoContainer(this.zoomPoint, ratios, -this.zoomStep);
-  }
   @HostListener('pinchin', ['$event']) onPinchIn(event:any) {
     if (event.velocityY === 0) { return; }
     const ratios = this.getContainerRatios();
@@ -83,46 +77,55 @@ export class SmStZoomDirective implements OnInit, OnChanges {
   }
 
   private getContainerRatios(): any {
+    if (this.zoomTarget.getBoundingClientRect().height < 1 || this.zoomTarget.getBoundingClientRect().width < 1 ) {
+      this.fitTargetContainerToContents();
+    }
     let ratioX, ratioY;
     if (this.zoomTarget.getBoundingClientRect().height > this.zoomTarget.getBoundingClientRect().width) {
-      ratioX = this.zoomTarget.getBoundingClientRect().width / this.zoomTarget.getBoundingClientRect().height;
-      ratioY = 1;
+      ratioX = 1
+      ratioY = this.zoomTarget.getBoundingClientRect().width / this.zoomTarget.getBoundingClientRect().height;
     }else {
-      ratioX = 1;
-      ratioY = this.zoomTarget.getBoundingClientRect().height / this.zoomTarget.getBoundingClientRect().width;
+      ratioX = this.zoomTarget.getBoundingClientRect().height / this.zoomTarget.getBoundingClientRect().width;
+      ratioY = 1;
     }
     return {x: ratioX, y: ratioY};
   }
   private zoomIntoContainer(zoomPoint: Point, ratios: any, zoomStep: number) {
     const prevDif = {
-      right: this.zoomTarget.getBoundingClientRect().right - this.zoomPoint.x ,
-      bottom: this.zoomTarget.getBoundingClientRect().bottom - this.zoomPoint.y
+      right: this.zoomTarget.firstElementChild.getBoundingClientRect().right - this.zoomPoint.x ,
+      bottom: this.zoomTarget.firstElementChild.getBoundingClientRect().bottom - this.zoomPoint.y
     };
-
     if (!this.setNewZoomLevel(zoomStep)) { return; }
     // scale the actual content
     this.render.setStyle(this.zoomTarget.firstElementChild, 'transform-origin', '0 0');
     this.render.setStyle(this.zoomTarget.firstElementChild, 'transform', 'scale(' + this.currentZoom + ')');
-    // set width and height of the content container so we keep scroll over the complete contents.
-    this.render.setStyle(this.zoomTarget, 'width', this.zoomTarget.firstElementChild.getBoundingClientRect().width + 'px');
-    this.render.setStyle(this.zoomTarget, 'height', this.zoomTarget.firstElementChild.getBoundingClientRect().height + 'px');
+    this.fitTargetContainerToContents();
 
     const afterDif = {
-      right: this.zoomTarget.getBoundingClientRect().right - this.zoomPoint.x ,
-      bottom: this.zoomTarget.getBoundingClientRect().bottom - this.zoomPoint.y
+      right: this.zoomTarget.firstElementChild.getBoundingClientRect().right - this.zoomPoint.x ,
+      bottom: this.zoomTarget.firstElementChild.getBoundingClientRect().bottom - this.zoomPoint.y
     };
 
     // Scroll to center
-    const xMultiplier = (1 - ratios.x) || 0.5;
-    const yMultiplier = (1 - ratios.y) || 0.5;
+    const xMultiplier = (this.elRef.nativeElement.scrollLeft + this.getScrollHandleSize('x')) / this.elRef.nativeElement.scrollWidth;
+    const yMultiplier = (this.elRef.nativeElement.scrollTop + this.getScrollHandleSize('y')) / this.elRef.nativeElement.scrollHeight;
 
     const scrollLeft = ((afterDif.right - prevDif.right) * xMultiplier);
     const scrollTop = ((afterDif.bottom - prevDif.bottom) * yMultiplier);
 
     this.elRef.nativeElement.scrollLeft += scrollLeft + this.getCenterDeviation(this.getTargetCenter(),
-        zoomPoint, this.getContainerRatios(), zoomStep).x;
+        zoomPoint, ratios, zoomStep).x;
     this.elRef.nativeElement.scrollTop += scrollTop + this.getCenterDeviation(this.getTargetCenter(),
-        zoomPoint, this.getContainerRatios(), zoomStep).y;
+        zoomPoint, ratios, zoomStep).y;
+  }
+
+  private getScrollHandleSize(direction: string){
+    if (direction === 'x') {
+      return this.elRef.nativeElement.clientWidth / (this.zoomTarget.clientWidth / this.elRef.nativeElement.clientWidth);
+    } else {
+      return this.elRef.nativeElement.clientHeight / (this.zoomTarget.clientHeight / this.elRef.nativeElement.clientHeight);
+
+    }
   }
 
   private setNewZoomLevel(zoomStep: number): boolean {
@@ -158,6 +161,12 @@ export class SmStZoomDirective implements OnInit, OnChanges {
     }
     return this.currentDeviation;
 
+  }
+
+  private fitTargetContainerToContents() {
+    // set width and height of the content container so we keep scroll over the complete contents.
+    this.render.setStyle(this.zoomTarget, 'width', this.zoomTarget.firstElementChild.clientWidth + 'px');
+    this.render.setStyle(this.zoomTarget, 'height', this.zoomTarget.firstElementChild.clientHeight + 'px');
   }
 
   ngOnInit() {
