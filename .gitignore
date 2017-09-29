@@ -3,5 +3,7 @@
 /rollup.config.js
 tsconfig.json
 index.ngsummary.json
-utility.module.ng**
+utility.module.**
 **/*.ngsummary.json
+classes
+directive
