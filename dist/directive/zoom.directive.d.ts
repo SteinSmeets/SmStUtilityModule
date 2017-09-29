@@ -1,4 +1,4 @@
-import { ElementRef, OnChanges, OnInit, Renderer2 } from '@angular/core';
+import { ElementRef, OnChanges, OnInit, Renderer2, EventEmitter } from '@angular/core';
 /**
  * SmStZoomDirective
  *
@@ -18,29 +18,36 @@ import { ElementRef, OnChanges, OnInit, Renderer2 } from '@angular/core';
  *
  * zoomTargetId: id of the content container wrapper.
  *
+ * currentZoom: value of the current zoom of the container. Can be used to set the inital value.
  *
  * @Output
  *
- * TODO
+ * currentZoomChange: (2 way bound): emits the zoom value when changed by directive.
  */
 export declare class SmStZoomDirective implements OnInit, OnChanges {
     private render;
     private elRef;
     private zoomStep;
     private pinchStep;
-    private currentZoom;
     private zoomTarget;
     private zoomPoint;
     private previousZoom;
     private zoomPointLocked;
     private zoomPointLockTimeout;
     private currentDeviation;
+    private eventLock;
     minZoom: number;
     maxZoom: number;
     zoomTargetId: string;
+    currentZoom: number;
+    currentZoomChange: EventEmitter<number>;
     onWheel(event: any): void;
+    onTouch(event: any): void;
     onPinchIn(event: any): void;
     onPinchOut(event: any): void;
+    onTouchStart(event: any): void;
+    onTouchMove(event: any): void;
+    onTouchEnd(event: any): void;
     constructor(render: Renderer2, elRef: ElementRef);
     private getContainerRatios();
     private zoomIntoContainer(zoomPoint, ratios, zoomStep);
@@ -48,7 +55,8 @@ export declare class SmStZoomDirective implements OnInit, OnChanges {
     private setNewZoomLevel(zoomStep);
     private getTargetCenter();
     private getCenterDeviation(center, zoomPoint, ratio, zoomStep);
-    private fitTargetContainerToContents();
+    private scroll(direction, value);
+    private defineZoomTarget();
     ngOnInit(): void;
     ngOnChanges(changes: any): void;
 }
