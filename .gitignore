@@ -3,5 +3,5 @@
 /rollup.config.js
 tsconfig.json
 index.ngsummary.json
-utility.module.**
+utility.module.ng**
 **/*.ngsummary.json
