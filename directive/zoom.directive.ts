@@ -51,10 +51,14 @@ export class SmStZoomDirective implements OnInit, OnChanges {
   @Input('zoomTargetId') zoomTargetId: string;
   @Input('currentZoom') currentZoom: number;
   @Input('enableTabZoom') enableTabZoom: boolean;
+  @Input('disableZoom') disableZoom: boolean;
 
   @Output('currentZoomChange') currentZoomChange: EventEmitter<number>;
 
   @HostListener('wheel', ['$event']) onWheel(event: any) {
+    if (this.disableZoom) {
+      return;
+    }
     if (event.ctrlKey) {
       event.preventDefault();
       const ratios = this.getContainerRatios();
@@ -63,6 +67,9 @@ export class SmStZoomDirective implements OnInit, OnChanges {
     }
   }
   @HostListener('tap', ['$event']) onTouch(event: any) {
+    if (this.disableZoom) {
+      return;
+    }
     if(this.enableTabZoom) {
       event.preventDefault();
       const ratios = this.getContainerRatios();
@@ -71,18 +78,27 @@ export class SmStZoomDirective implements OnInit, OnChanges {
     }
   }
   @HostListener('pinchin', ['$event']) onPinchIn(event: any) {
+    if (this.disableZoom) {
+      return;
+    }
     if (event.velocityY === 0 || this.eventLock.isLocked(SmStEvent.PINCH)) { return; }
     const ratios = this.getContainerRatios();
     this.zoomPoint = {x: event.center.x, y: event.center.y};
     this.zoomIntoContainer(this.zoomPoint, ratios, -this.pinchStep);
   }
   @HostListener('pinchout', ['$event']) onPinchOut(event: any) {
+    if (this.disableZoom) {
+      return;
+    }
     if (event.velocityY === 0 || this.eventLock.isLocked(SmStEvent.PINCH)) { return; }
     const ratios = this.getContainerRatios();
     this.zoomPoint = {x: event.center.x, y: event.center.y};
     this.zoomIntoContainer(this.getTargetCenter(), ratios, this.pinchStep);
   }
   @HostListener('touchstart', ['$event']) onTouchStart(event: any) {
+    if (this.disableZoom) {
+      return;
+    }
     if (event.touches.length > 1) {
       // if more then one touch, clear the EventLock for other events.
       if (!this.eventLock.isLocked(SmStEvent.PAN)) {
@@ -97,6 +113,9 @@ export class SmStZoomDirective implements OnInit, OnChanges {
     }
   }
   @HostListener('touchmove', ['$event']) onTouchMove (event: any) {
+    if (this.disableZoom) {
+      return;
+    }
     if (this.zoomPoint.x < 0) { return; } // zoomPoint becomes zero on touchEnd, this means no further actions needed.
     if (!this.eventLock.isLocked(SmStEvent.PAN)) {
       const newPoint = {x: event.touches[0].clientX, y: event.touches[0].clientY};
@@ -124,6 +143,7 @@ export class SmStZoomDirective implements OnInit, OnChanges {
     this.eventLock = new EventLock();
     this.currentZoomChange = new EventEmitter()
     this.enableTabZoom = false;
+    this.disableZoom = false;
   }
 
   private getContainerRatios(): any {
@@ -138,6 +158,7 @@ export class SmStZoomDirective implements OnInit, OnChanges {
     return {x: ratioX, y: ratioY};
   }
   private zoomIntoContainer(zoomPoint: Point, ratios: any, zoomStep: number , external?: boolean){
+    if ( ! this.zoomTarget.firstElementChild ) return;
     const prevDif = {
       right: this.zoomTarget.firstElementChild.getBoundingClientRect().right - zoomPoint.x ,
       bottom: this.zoomTarget.firstElementChild.getBoundingClientRect().bottom - zoomPoint.y
@@ -151,15 +172,17 @@ export class SmStZoomDirective implements OnInit, OnChanges {
       right: this.zoomTarget.firstElementChild.getBoundingClientRect().right - zoomPoint.x ,
       bottom: this.zoomTarget.firstElementChild.getBoundingClientRect().bottom - zoomPoint.y
     };
-
     // Scroll to center
     const xMultiplier = (this.elRef.nativeElement.scrollLeft + this.getScrollHandleSize('x'))
       / this.elRef.nativeElement.scrollWidth;
     const yMultiplier = (this.elRef.nativeElement.scrollTop + this.getScrollHandleSize('y'))
       / this.elRef.nativeElement.scrollHeight;
 
-    const scrollBarWidthDifference = (zoomStep < 0) ? 0 : (this.getScrollHandleSize('x') / 2);
-    const scrollBarHeightDifference = (zoomStep < 0) ? 0 : (this.getScrollHandleSize('y') / 2);
+    const scrollBarWidthDifference = (zoomStep < 0) ? 0 :
+      (this.eventLock.isLocked(SmStEvent.NOEVENT)) ? 0 : (this.getScrollHandleSize('x') / 2);
+    const scrollBarHeightDifference = (zoomStep < 0) ? 0 :
+      (this.eventLock.isLocked(SmStEvent.NOEVENT)) ? 0 : (this.getScrollHandleSize('y') / 2);
+
     const scrollLeft = ((afterDif.right - prevDif.right) * (xMultiplier)) + scrollBarWidthDifference ;
     const scrollTop = ((afterDif.bottom - prevDif.bottom) * (yMultiplier)) + scrollBarHeightDifference ;
 
@@ -167,7 +190,6 @@ export class SmStZoomDirective implements OnInit, OnChanges {
     //+ this.getCenterDeviation(this.getTargetCenter(), zoomPoint, ratios, zoomStep).x;
     this.elRef.nativeElement.scrollTop += scrollTop;
     // + this.getCenterDeviation(this.getTargetCenter(), zoomPoint, ratios, zoomStep).y;
-
     this.currentZoomChange.emit(this.currentZoom);
   }
 
@@ -205,16 +227,22 @@ private getScrollHandleSize(direction: string) {
     return {x: rectangle.left + (rectangle.width / 2) , y: rectangle.top + (rectangle.height / 2) };
   }
   private getCenterDeviation(center: Point, zoomPoint: Point, ratio: Point, zoomStep: number): Point {
+    if (this.eventLock.isLocked(SmStEvent.NOEVENT)) {
+      return {x: 0, y: 0};
+    }
     if (this.zoomPointLockTimeout) {
       clearTimeout(this.zoomPointLockTimeout);
     }
     this.zoomPointLockTimeout = setTimeout(() => {
       this.zoomPointLocked = false;
-    }, 1000);
+    }, 500);
     if (!this.zoomPointLocked) {
       this.zoomPointLocked = true;
       const stepsToMaxZoom = (this.maxZoom - this.currentZoom) / zoomStep;
-      this.currentDeviation = {x: (zoomPoint.x - center.x) / stepsToMaxZoom , y: (zoomPoint.y - center.y) / stepsToMaxZoom };
+      this.currentDeviation = {
+        x: (zoomPoint.x - center.x) / stepsToMaxZoom ,
+        y: (zoomPoint.y - center.y) / stepsToMaxZoom
+      };
     }
     return this.currentDeviation;
 
