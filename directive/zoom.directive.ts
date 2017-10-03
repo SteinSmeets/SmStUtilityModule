@@ -59,6 +59,11 @@ export class SmStZoomDirective implements OnInit, OnChanges {
     if (this.disableZoom) {
       return;
     }
+    if( this.eventLock.isLocked(SmStEvent.WHEEL)){
+        return;
+    }
+    this.eventLock.init(SmStEvent.WHEEL);
+
     if (event.ctrlKey) {
       event.preventDefault();
       const ratios = this.getContainerRatios();
@@ -277,8 +282,14 @@ private getScrollHandleSize(direction: string) {
       if (!this.zoomTarget) {
         this.defineZoomTarget();
       }
-      this.zoomIntoContainer(this.getTargetCenter(), this.getContainerRatios(),
-        changes.currentZoom.currentValue - (changes.currentZoom.previousValue || 1), true);
+      if(!this.eventLock.isLocked(SmStEvent.NOEVENT)){
+        this.zoomIntoContainer(this.getTargetCenter(), this.getContainerRatios(),
+          changes.currentZoom.currentValue - (changes.currentZoom.previousValue || 1), true);
+      }
+
+    }
+    if (changes.disableZoom){
+      this.eventLock.unlock();
     }
   }
 }
