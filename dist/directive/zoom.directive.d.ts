@@ -36,6 +36,7 @@ export declare class SmStZoomDirective implements OnInit, OnChanges {
     private previousZoom;
     private zoomPointLocked;
     private zoomPointLockTimeout;
+    private wheelLockResetTimout;
     private currentDeviation;
     private eventLock;
     minZoom: number;

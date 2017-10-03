@@ -46,18 +46,25 @@ var SmStZoomDirective = /** @class */ (function () {
         this.disableZoom = false;
     }
     SmStZoomDirective.prototype.onWheel = function (event) {
+        var _this = this;
         if (this.disableZoom) {
             return;
         }
         if (this.eventLock.isLocked(SmStEvent.WHEEL)) {
             return;
         }
-        this.eventLock.init(SmStEvent.WHEEL);
         if (event.ctrlKey) {
             event.preventDefault();
+            if (this.wheelLockResetTimout) {
+                clearTimeout(this.wheelLockResetTimout);
+            }
+            this.eventLock.init(SmStEvent.WHEEL);
             var ratios = this.getContainerRatios();
             this.zoomPoint = { x: event.x, y: event.y };
             this.zoomIntoContainer((event.deltaY < 0) ? this.zoomPoint : this.getTargetCenter(), ratios, (event.deltaY < 0) ? this.zoomStep : -this.zoomStep);
+            this.wheelLockResetTimout = setTimeout(function () {
+                _this.eventLock.unlock();
+            }, 500);
         }
     };
     SmStZoomDirective.prototype.onTouch = function (event) {
@@ -168,10 +175,8 @@ var SmStZoomDirective = /** @class */ (function () {
             (this.eventLock.isLocked(SmStEvent.NOEVENT)) ? 0 : (this.getScrollHandleSize('y') / 2);
         var scrollLeft = ((afterDif.right - prevDif.right) * (xMultiplier)) + scrollBarWidthDifference;
         var scrollTop = ((afterDif.bottom - prevDif.bottom) * (yMultiplier)) + scrollBarHeightDifference;
-        this.elRef.nativeElement.scrollLeft += scrollLeft;
-        //+ this.getCenterDeviation(this.getTargetCenter(), zoomPoint, ratios, zoomStep).x;
-        this.elRef.nativeElement.scrollTop += scrollTop;
-        // + this.getCenterDeviation(this.getTargetCenter(), zoomPoint, ratios, zoomStep).y;
+        this.elRef.nativeElement.scrollLeft += scrollLeft + this.getCenterDeviation(this.getTargetCenter(), zoomPoint, ratios, zoomStep).x;
+        this.elRef.nativeElement.scrollTop += scrollTop + this.getCenterDeviation(this.getTargetCenter(), zoomPoint, ratios, zoomStep).y;
         this.currentZoomChange.emit(this.currentZoom);
     };
     SmStZoomDirective.prototype.getScrollHandleSize = function (direction) {
