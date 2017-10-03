@@ -139,7 +139,7 @@ export class SmStZoomDirective implements OnInit, OnChanges {
 
   constructor(private render: Renderer2, private elRef: ElementRef) {
     this.zoomStep = 0.1;
-    this.pinchStep = 0.01;
+    this.pinchStep = 0.03;
     if (!this.currentZoom) {
       this.currentZoom = 1;
     }

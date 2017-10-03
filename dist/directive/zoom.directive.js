@@ -32,7 +32,7 @@ var SmStZoomDirective = /** @class */ (function () {
         this.render = render;
         this.elRef = elRef;
         this.zoomStep = 0.1;
-        this.pinchStep = 0.01;
+        this.pinchStep = 0.03;
         if (!this.currentZoom) {
             this.currentZoom = 1;
         }
