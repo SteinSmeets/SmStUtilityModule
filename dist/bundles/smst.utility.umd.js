@@ -249,7 +249,7 @@ var SmStZoomDirective = /** @class */ (function () {
     };
     SmStZoomDirective.prototype.getCenterDeviation = function (center, zoomPoint, ratio, zoomStep) {
         var _this = this;
-        if (this.eventLock.isLocked(SmStEvent.NOEVENT)) {
+        if (this.eventLock.isLocked(SmStEvent.WHEEL)) {
             return { x: 0, y: 0 };
         }
         if (this.zoomPointLockTimeout) {
@@ -261,6 +261,7 @@ var SmStZoomDirective = /** @class */ (function () {
         if (!this.zoomPointLocked) {
             this.zoomPointLocked = true;
             var stepsToMaxZoom = (this.maxZoom - this.currentZoom) / zoomStep;
+            stepsToMaxZoom = (stepsToMaxZoom === 0) ? 1 : stepsToMaxZoom;
             this.currentDeviation = {
                 x: (zoomPoint.x - center.x) / stepsToMaxZoom,
                 y: (zoomPoint.y - center.y) / stepsToMaxZoom

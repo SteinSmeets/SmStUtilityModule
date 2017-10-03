@@ -236,7 +236,7 @@ private getScrollHandleSize(direction: string) {
     return {x: rectangle.left + (rectangle.width / 2) , y: rectangle.top + (rectangle.height / 2) };
   }
   private getCenterDeviation(center: Point, zoomPoint: Point, ratio: Point, zoomStep: number): Point {
-    if (this.eventLock.isLocked(SmStEvent.NOEVENT)) {
+    if (this.eventLock.isLocked(SmStEvent.WHEEL)) {
       return {x: 0, y: 0};
     }
     if (this.zoomPointLockTimeout) {
@@ -247,7 +247,8 @@ private getScrollHandleSize(direction: string) {
     }, 500);
     if (!this.zoomPointLocked) {
       this.zoomPointLocked = true;
-      const stepsToMaxZoom = (this.maxZoom - this.currentZoom) / zoomStep;
+      let stepsToMaxZoom = (this.maxZoom - this.currentZoom) / zoomStep;
+      stepsToMaxZoom = (stepsToMaxZoom === 0) ? 1 : stepsToMaxZoom;
       this.currentDeviation = {
         x: (zoomPoint.x - center.x) / stepsToMaxZoom ,
         y: (zoomPoint.y - center.y) / stepsToMaxZoom
