@@ -46,7 +46,6 @@ var SmStZoomDirective = /** @class */ (function () {
         this.disableZoom = false;
     }
     SmStZoomDirective.prototype.onWheel = function (event) {
-        var _this = this;
         if (this.disableZoom) {
             return;
         }
@@ -55,16 +54,11 @@ var SmStZoomDirective = /** @class */ (function () {
         }
         if (event.ctrlKey) {
             event.preventDefault();
-            if (this.wheelLockResetTimout) {
-                clearTimeout(this.wheelLockResetTimout);
-            }
             this.eventLock.init(SmStEvent.WHEEL);
             var ratios = this.getContainerRatios();
             this.zoomPoint = { x: event.x, y: event.y };
             this.zoomIntoContainer((event.deltaY < 0) ? this.zoomPoint : this.getTargetCenter(), ratios, (event.deltaY < 0) ? this.zoomStep : -this.zoomStep);
-            this.wheelLockResetTimout = setTimeout(function () {
-                _this.eventLock.unlock();
-            }, 500);
+            this.resetEventLockTimout();
         }
     };
     SmStZoomDirective.prototype.onTouch = function (event) {
@@ -76,6 +70,7 @@ var SmStZoomDirective = /** @class */ (function () {
             var ratios = this.getContainerRatios();
             this.zoomPoint = { x: event.center.x, y: event.center.y };
             this.zoomIntoContainer(this.zoomPoint, ratios, this.zoomStep);
+            this.resetEventLockTimout();
         }
     };
     SmStZoomDirective.prototype.onPinchIn = function (event) {
@@ -169,10 +164,11 @@ var SmStZoomDirective = /** @class */ (function () {
             / this.elRef.nativeElement.scrollWidth;
         var yMultiplier = (this.elRef.nativeElement.scrollTop + this.getScrollHandleSize('y'))
             / this.elRef.nativeElement.scrollHeight;
+        // If it is not a pinch or external even that triggered teh zoom, we add halve of the scrollbar Size.
         var scrollBarWidthDifference = (zoomStep < 0) ? 0 :
-            (this.eventLock.isLocked(SmStEvent.NOEVENT)) ? 0 : (this.getScrollHandleSize('x') / 2);
+            (this.eventLock.isLocked(SmStEvent.PINCH) && this.eventLock.isLocked(SmStEvent.EXTERNAL)) ? (this.getScrollHandleSize('x') / 2) : 0;
         var scrollBarHeightDifference = (zoomStep < 0) ? 0 :
-            (this.eventLock.isLocked(SmStEvent.NOEVENT)) ? 0 : (this.getScrollHandleSize('y') / 2);
+            (this.eventLock.isLocked(SmStEvent.PINCH) && this.eventLock.isLocked(SmStEvent.EXTERNAL)) ? (this.getScrollHandleSize('y') / 2) : 0;
         var scrollLeft = ((afterDif.right - prevDif.right) * (xMultiplier)) + scrollBarWidthDifference;
         var scrollTop = ((afterDif.bottom - prevDif.bottom) * (yMultiplier)) + scrollBarHeightDifference;
         this.elRef.nativeElement.scrollLeft += scrollLeft + this.getCenterDeviation(this.getTargetCenter(), zoomPoint, ratios, zoomStep).x;
@@ -252,6 +248,15 @@ var SmStZoomDirective = /** @class */ (function () {
             console.error('SmStUtilityModule - ZoomDirective: ', 'zoomTarget could not be initiated. ', 'zoomTargetId = ', this.zoomTargetId);
         }
     };
+    SmStZoomDirective.prototype.resetEventLockTimout = function () {
+        var _this = this;
+        if (this.eventLockResetTimout) {
+            clearTimeout(this.eventLockResetTimout);
+        }
+        this.eventLockResetTimout = setTimeout(function () {
+            _this.eventLock.unlock();
+        }, 500);
+    };
     SmStZoomDirective.prototype.ngOnInit = function () {
         this.zoomTarget = document.getElementById(this.zoomTargetId);
     };
@@ -263,8 +268,10 @@ var SmStZoomDirective = /** @class */ (function () {
             if (!this.zoomTarget) {
                 this.defineZoomTarget();
             }
-            if (!this.eventLock.isLocked(SmStEvent.NOEVENT)) {
+            if (!this.eventLock.isLocked(SmStEvent.EXTERNAL)) {
+                this.eventLock.init(SmStEvent.EXTERNAL);
                 this.zoomIntoContainer(this.getTargetCenter(), this.getContainerRatios(), changes.currentZoom.currentValue - (changes.currentZoom.previousValue || 1), true);
+                this.resetEventLockTimout();
             }
         }
         if (changes.disableZoom) {

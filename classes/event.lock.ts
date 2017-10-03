@@ -25,5 +25,5 @@ export class EventLock {
 }
 
 export enum SmStEvent {
-  NOEVENT, PINCH, PAN, WHEEL
+  NOEVENT, PINCH, PAN, WHEEL, TAP, EXTERNAL
 }

@@ -36,7 +36,7 @@ export declare class SmStZoomDirective implements OnInit, OnChanges {
     private previousZoom;
     private zoomPointLocked;
     private zoomPointLockTimeout;
-    private wheelLockResetTimout;
+    private eventLockResetTimout;
     private currentDeviation;
     private eventLock;
     minZoom: number;
@@ -62,6 +62,7 @@ export declare class SmStZoomDirective implements OnInit, OnChanges {
     private getCenterDeviation(center, zoomPoint, ratio, zoomStep);
     private scroll(direction, value);
     private defineZoomTarget();
+    private resetEventLockTimout();
     ngOnInit(): void;
     ngOnChanges(changes: any): void;
 }

@@ -26,5 +26,7 @@ export var SmStEvent;
     SmStEvent[SmStEvent["PINCH"] = 1] = "PINCH";
     SmStEvent[SmStEvent["PAN"] = 2] = "PAN";
     SmStEvent[SmStEvent["WHEEL"] = 3] = "WHEEL";
+    SmStEvent[SmStEvent["TAP"] = 4] = "TAP";
+    SmStEvent[SmStEvent["EXTERNAL"] = 5] = "EXTERNAL";
 })(SmStEvent || (SmStEvent = {}));
 //# sourceMappingURL=event.lock.js.map

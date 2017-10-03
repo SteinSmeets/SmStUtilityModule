@@ -11,4 +11,6 @@ export declare enum SmStEvent {
     PINCH = 1,
     PAN = 2,
     WHEEL = 3,
+    TAP = 4,
+    EXTERNAL = 5,
 }
