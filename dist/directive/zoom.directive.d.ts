@@ -43,6 +43,7 @@ export declare class SmStZoomDirective implements OnInit, OnChanges {
     zoomTargetId: string;
     currentZoom: number;
     enableTabZoom: boolean;
+    disableZoom: boolean;
     currentZoomChange: EventEmitter<number>;
     onWheel(event: any): void;
     onTouch(event: any): void;

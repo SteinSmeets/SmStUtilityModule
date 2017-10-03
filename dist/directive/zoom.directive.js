@@ -43,8 +43,16 @@ var SmStZoomDirective = /** @class */ (function () {
         this.eventLock = new EventLock();
         this.currentZoomChange = new EventEmitter();
         this.enableTabZoom = false;
+        this.disableZoom = false;
     }
     SmStZoomDirective.prototype.onWheel = function (event) {
+        if (this.disableZoom) {
+            return;
+        }
+        if (this.eventLock.isLocked(SmStEvent.WHEEL)) {
+            return;
+        }
+        this.eventLock.init(SmStEvent.WHEEL);
         if (event.ctrlKey) {
             event.preventDefault();
             var ratios = this.getContainerRatios();
@@ -53,6 +61,9 @@ var SmStZoomDirective = /** @class */ (function () {
         }
     };
     SmStZoomDirective.prototype.onTouch = function (event) {
+        if (this.disableZoom) {
+            return;
+        }
         if (this.enableTabZoom) {
             event.preventDefault();
             var ratios = this.getContainerRatios();
@@ -61,6 +72,9 @@ var SmStZoomDirective = /** @class */ (function () {
         }
     };
     SmStZoomDirective.prototype.onPinchIn = function (event) {
+        if (this.disableZoom) {
+            return;
+        }
         if (event.velocityY === 0 || this.eventLock.isLocked(SmStEvent.PINCH)) {
             return;
         }
@@ -69,6 +83,9 @@ var SmStZoomDirective = /** @class */ (function () {
         this.zoomIntoContainer(this.zoomPoint, ratios, -this.pinchStep);
     };
     SmStZoomDirective.prototype.onPinchOut = function (event) {
+        if (this.disableZoom) {
+            return;
+        }
         if (event.velocityY === 0 || this.eventLock.isLocked(SmStEvent.PINCH)) {
             return;
         }
@@ -77,6 +94,9 @@ var SmStZoomDirective = /** @class */ (function () {
         this.zoomIntoContainer(this.getTargetCenter(), ratios, this.pinchStep);
     };
     SmStZoomDirective.prototype.onTouchStart = function (event) {
+        if (this.disableZoom) {
+            return;
+        }
         if (event.touches.length > 1) {
             // if more then one touch, clear the EventLock for other events.
             if (!this.eventLock.isLocked(SmStEvent.PAN)) {
@@ -91,6 +111,9 @@ var SmStZoomDirective = /** @class */ (function () {
         }
     };
     SmStZoomDirective.prototype.onTouchMove = function (event) {
+        if (this.disableZoom) {
+            return;
+        }
         if (this.zoomPoint.x < 0) {
             return;
         } // zoomPoint becomes zero on touchEnd, this means no further actions needed.
@@ -118,6 +141,8 @@ var SmStZoomDirective = /** @class */ (function () {
         return { x: ratioX, y: ratioY };
     };
     SmStZoomDirective.prototype.zoomIntoContainer = function (zoomPoint, ratios, zoomStep, external) {
+        if (!this.zoomTarget.firstElementChild)
+            return;
         var prevDif = {
             right: this.zoomTarget.firstElementChild.getBoundingClientRect().right - zoomPoint.x,
             bottom: this.zoomTarget.firstElementChild.getBoundingClientRect().bottom - zoomPoint.y
@@ -137,8 +162,10 @@ var SmStZoomDirective = /** @class */ (function () {
             / this.elRef.nativeElement.scrollWidth;
         var yMultiplier = (this.elRef.nativeElement.scrollTop + this.getScrollHandleSize('y'))
             / this.elRef.nativeElement.scrollHeight;
-        var scrollBarWidthDifference = (zoomStep < 0) ? 0 : (this.getScrollHandleSize('x') / 2);
-        var scrollBarHeightDifference = (zoomStep < 0) ? 0 : (this.getScrollHandleSize('y') / 2);
+        var scrollBarWidthDifference = (zoomStep < 0) ? 0 :
+            (this.eventLock.isLocked(SmStEvent.NOEVENT)) ? 0 : (this.getScrollHandleSize('x') / 2);
+        var scrollBarHeightDifference = (zoomStep < 0) ? 0 :
+            (this.eventLock.isLocked(SmStEvent.NOEVENT)) ? 0 : (this.getScrollHandleSize('y') / 2);
         var scrollLeft = ((afterDif.right - prevDif.right) * (xMultiplier)) + scrollBarWidthDifference;
         var scrollTop = ((afterDif.bottom - prevDif.bottom) * (yMultiplier)) + scrollBarHeightDifference;
         this.elRef.nativeElement.scrollLeft += scrollLeft;
@@ -184,16 +211,22 @@ var SmStZoomDirective = /** @class */ (function () {
     };
     SmStZoomDirective.prototype.getCenterDeviation = function (center, zoomPoint, ratio, zoomStep) {
         var _this = this;
+        if (this.eventLock.isLocked(SmStEvent.NOEVENT)) {
+            return { x: 0, y: 0 };
+        }
         if (this.zoomPointLockTimeout) {
             clearTimeout(this.zoomPointLockTimeout);
         }
         this.zoomPointLockTimeout = setTimeout(function () {
             _this.zoomPointLocked = false;
-        }, 1000);
+        }, 500);
         if (!this.zoomPointLocked) {
             this.zoomPointLocked = true;
             var stepsToMaxZoom = (this.maxZoom - this.currentZoom) / zoomStep;
-            this.currentDeviation = { x: (zoomPoint.x - center.x) / stepsToMaxZoom, y: (zoomPoint.y - center.y) / stepsToMaxZoom };
+            this.currentDeviation = {
+                x: (zoomPoint.x - center.x) / stepsToMaxZoom,
+                y: (zoomPoint.y - center.y) / stepsToMaxZoom
+            };
         }
         return this.currentDeviation;
     };
@@ -224,7 +257,12 @@ var SmStZoomDirective = /** @class */ (function () {
             if (!this.zoomTarget) {
                 this.defineZoomTarget();
             }
-            this.zoomIntoContainer(this.getTargetCenter(), this.getContainerRatios(), changes.currentZoom.currentValue - (changes.currentZoom.previousValue || 1), true);
+            if (!this.eventLock.isLocked(SmStEvent.NOEVENT)) {
+                this.zoomIntoContainer(this.getTargetCenter(), this.getContainerRatios(), changes.currentZoom.currentValue - (changes.currentZoom.previousValue || 1), true);
+            }
+        }
+        if (changes.disableZoom) {
+            this.eventLock.unlock();
         }
     };
     SmStZoomDirective.decorators = [
@@ -243,6 +281,7 @@ var SmStZoomDirective = /** @class */ (function () {
         'zoomTargetId': [{ type: Input, args: ['zoomTargetId',] },],
         'currentZoom': [{ type: Input, args: ['currentZoom',] },],
         'enableTabZoom': [{ type: Input, args: ['enableTabZoom',] },],
+        'disableZoom': [{ type: Input, args: ['disableZoom',] },],
         'currentZoomChange': [{ type: Output, args: ['currentZoomChange',] },],
         'onWheel': [{ type: HostListener, args: ['wheel', ['$event'],] },],
         'onTouch': [{ type: HostListener, args: ['tap', ['$event'],] },],
