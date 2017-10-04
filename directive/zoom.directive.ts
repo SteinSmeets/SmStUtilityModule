@@ -46,7 +46,6 @@ export class SmStZoomDirective implements OnInit, OnChanges {
 
   private eventLock: EventLock;
 
-
   @Input('minZoom') minZoom: number;
   @Input('maxZoom') maxZoom: number;
   @Input('zoomTargetId') zoomTargetId: string;
@@ -66,9 +65,9 @@ export class SmStZoomDirective implements OnInit, OnChanges {
     if (event.ctrlKey) {
       event.preventDefault();
       this.eventLock.init(SmStEvent.WHEEL);
-      const ratios = this.getContainerRatios();
       this.zoomPoint = {x: event.x, y: event.y} ;
-      this.zoomIntoContainer((event.deltaY < 0 ) ? this.getTargetCenter() : this.getTargetCenter(), ratios, (event.deltaY < 0 ) ? this.zoomStep : -this.zoomStep);
+      this.zoomIntoContainer((event.deltaY < 0 ) ? this.zoomPoint :
+      this.getTargetCenter(), (event.deltaY < 0 ) ? this.zoomStep : -this.zoomStep);
       this.resetEventLockTimout();
     }
   }
@@ -82,9 +81,8 @@ export class SmStZoomDirective implements OnInit, OnChanges {
     if(this.enableTabZoom) {
       event.preventDefault();
       this.eventLock.init(SmStEvent.TAP);
-      const ratios = this.getContainerRatios();
-      this.zoomPoint = {x: event.center.x, y: event.center.y} ;
-      this.zoomIntoContainer(this.zoomPoint, ratios, -this.zoomStep);
+      this.zoomPoint = {x: event.center.x, y: event.center.y};
+      this.zoomIntoContainer(this.zoomPoint, -this.zoomStep);
       this.resetEventLockTimout();
     }
   }
@@ -93,18 +91,16 @@ export class SmStZoomDirective implements OnInit, OnChanges {
       return;
     }
     if (event.velocityY === 0 || this.eventLock.isLocked(SmStEvent.PINCH)) { return; }
-    const ratios = this.getContainerRatios();
     this.zoomPoint = {x: event.center.x, y: event.center.y};
-    this.zoomIntoContainer(this.zoomPoint, ratios, -this.pinchStep);
+    this.zoomIntoContainer(this.zoomPoint, -this.pinchStep);
   }
   @HostListener('pinchout', ['$event']) onPinchOut(event: any) {
     if (this.disableZoom) {
       return;
     }
     if (event.velocityY === 0 || this.eventLock.isLocked(SmStEvent.PINCH)) { return; }
-    const ratios = this.getContainerRatios();
     this.zoomPoint = {x: event.center.x, y: event.center.y};
-    this.zoomIntoContainer(this.getTargetCenter(), ratios, this.pinchStep);
+    this.zoomIntoContainer(this.getTargetCenter(), this.pinchStep);
   }
   @HostListener('touchstart', ['$event']) onTouchStart(event: any) {
     if (this.disableZoom) {
@@ -153,22 +149,10 @@ export class SmStZoomDirective implements OnInit, OnChanges {
     this.zoomTargetId = 'zoomTarget';
     this.eventLock = new EventLock();
     this.currentZoomChange = new EventEmitter()
-    this.enableTabZoom = true;
+    this.enableTabZoom = false;
     this.disableZoom = false;
   }
-
-  private getContainerRatios(): any {
-    let ratioX, ratioY;
-    if (this.zoomTarget.getBoundingClientRect().height > this.zoomTarget.getBoundingClientRect().width) {
-      ratioX = 1;
-      ratioY = this.zoomTarget.getBoundingClientRect().width / this.zoomTarget.getBoundingClientRect().height;
-    }else {
-      ratioX = this.zoomTarget.getBoundingClientRect().height / this.zoomTarget.getBoundingClientRect().width;
-      ratioY = 1;
-    }
-    return {x: ratioX, y: ratioY};
-  }
-  private zoomIntoContainer(zoomPoint: Point, ratios: any, zoomStep: number , external?: boolean){
+  private zoomIntoContainer(zoomPoint: Point, zoomStep: number , external?: boolean){
     if ( ! this.zoomTarget.firstElementChild ) return;
     let percentageXBefore = (this.elRef.nativeElement.scrollLeft + (this.getScrollHandleSize('x')/2)) / this.elRef.nativeElement.scrollWidth;
     let previousHandleSizeX = this.getScrollHandleSize('x');
@@ -188,18 +172,29 @@ export class SmStZoomDirective implements OnInit, OnChanges {
     let scrollLeft = 0;
     let scrollTop = 0;
     if(zoomStep > 0) {
-      scrollLeft = (this.elRef.nativeElement.scrollWidth * percentageXBefore) - (this.getScrollHandleSize('x') /2) + ((previousHandleSizeX - this.getScrollHandleSize('x') )*2) //- (this.getScrollHandleSize('x') * containerScrollRatioX) + ((this.getScrollHandleSize('x') - previousHandleSizeX) * 1.25);
-      scrollTop = (this.elRef.nativeElement.scrollHeight * percentageYBefore) - (this.getScrollHandleSize('y') /2) + ((previousHandleSizeY - this.getScrollHandleSize('y') )*2) //- (this.getScrollHandleSize('y') * containerScrollRatioY) + ((this.getScrollHandleSize('y') - previousHandleSizeY) * 1.25);
+      scrollLeft = (this.elRef.nativeElement.scrollWidth * percentageXBefore) -
+      (this.getScrollHandleSize('x') / 2) +
+      ((previousHandleSizeX - this.getScrollHandleSize('x')) * 2);
+
+      scrollTop = (this.elRef.nativeElement.scrollHeight * percentageYBefore) -
+      (this.getScrollHandleSize('y') / 2) +
+      ((previousHandleSizeY - this.getScrollHandleSize('y')) * 2);
+
     } else {
-      scrollLeft = (this.elRef.nativeElement.scrollWidth * percentageXBefore) - (this.getScrollHandleSize('x') /2) +((previousHandleSizeX - this.getScrollHandleSize('x') )*2) //-  (this.getScrollHandleSize('x') * containerScrollRatioX) - (previousHandleSizeX / 2) - ((this.getScrollHandleSize('x') - previousHandleSizeX) * 0.75);
-      scrollTop = (this.elRef.nativeElement.scrollHeight * percentageYBefore) - (this.getScrollHandleSize('y') /2)  + ((previousHandleSizeY - this.getScrollHandleSize('y') )*2)//-  (this.getScrollHandleSize('y') * containerScrollRatioY) - (previousHandleSizeY / 2) - ((this.getScrollHandleSize('x') - previousHandleSizeX) * 0.75);
+      scrollLeft = (this.elRef.nativeElement.scrollWidth * percentageXBefore) -
+      (this.getScrollHandleSize('x') / 2) +
+      ((previousHandleSizeX - this.getScrollHandleSize('x')) * 2);
+
+      scrollTop = (this.elRef.nativeElement.scrollHeight * percentageYBefore) -
+      (this.getScrollHandleSize('y') / 2) +
+      ((previousHandleSizeY - this.getScrollHandleSize('y')) * 2);
 
     }
-    this.elRef.nativeElement.scrollLeft = scrollLeft;
-    this.elRef.nativeElement.scrollTop = scrollTop;
+    let centerDeviation = this.getCenterDeviation(this.getTargetCenter(), zoomPoint, zoomStep);
+    this.elRef.nativeElement.scrollLeft = scrollLeft + centerDeviation.x;
+    this.elRef.nativeElement.scrollTop = scrollTop + centerDeviation.y;
     this.currentZoomChange.emit(this.currentZoom);
   }
-
   private getScrollHandleSize(direction: string) {
     if(direction === 'x') {
       return ((this.elRef.nativeElement.getBoundingClientRect().width /
@@ -211,7 +206,6 @@ export class SmStZoomDirective implements OnInit, OnChanges {
       (this.elRef.nativeElement.clientHeight ));
     }
   }
-
   private setNewZoomLevel(zoomStep: number, external: boolean): boolean {
     this.currentZoom = (external) ? this.currentZoom : this.currentZoom += zoomStep;
     if (this.currentZoom < this.minZoom) {
@@ -222,16 +216,14 @@ export class SmStZoomDirective implements OnInit, OnChanges {
       if (this.previousZoom === this.currentZoom) { return false; }
 
     }
-
     this.previousZoom = this.currentZoom;
-
     return true;
   }
   private getTargetCenter(): Point {
     const rectangle = this.elRef.nativeElement.getBoundingClientRect();
     return {x: rectangle.left + (rectangle.width / 2) , y: rectangle.top + (rectangle.height / 2) };
   }
-  private getCenterDeviation(center: Point, zoomPoint: Point, ratio: Point, zoomStep: number): Point {
+  private getCenterDeviation(center: Point, zoomPoint: Point, zoomStep: number): Point {
     if (this.eventLock.isLocked(SmStEvent.WHEEL)) {
       return {x: 0, y: 0};
     }
@@ -253,7 +245,6 @@ export class SmStZoomDirective implements OnInit, OnChanges {
     return this.currentDeviation;
 
   }
-
   private scroll(direction: string, value: number) {
     switch (direction) {
       case 'y':
@@ -264,7 +255,6 @@ export class SmStZoomDirective implements OnInit, OnChanges {
         break;
     }
   }
-
   private defineZoomTarget() {
     this.zoomTarget = document.getElementById(this.zoomTargetId);
     if (!this.zoomTarget) {
@@ -282,7 +272,6 @@ export class SmStZoomDirective implements OnInit, OnChanges {
   ngOnInit() {
     this.zoomTarget = document.getElementById(this.zoomTargetId);
   }
-
   ngOnChanges(changes: any) {
     if (changes.zoomTargetId ) {
       this.defineZoomTarget();
@@ -293,18 +282,16 @@ export class SmStZoomDirective implements OnInit, OnChanges {
       }
       if(!this.eventLock.isLocked(SmStEvent.EXTERNAL)){
         this.eventLock.init(SmStEvent.EXTERNAL);
-        this.zoomIntoContainer(this.getTargetCenter(), this.getContainerRatios(),
+        this.zoomIntoContainer(this.getTargetCenter(),
           changes.currentZoom.currentValue - (changes.currentZoom.previousValue || 1), true);
         this.resetEventLockTimout();
       }
-
     }
     if (changes.disableZoom){
       this.eventLock.unlock();
     }
   }
 }
-
 export class Point {
   x: number;
   y: number;
