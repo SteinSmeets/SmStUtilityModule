@@ -54,12 +54,11 @@ export declare class SmStZoomDirective implements OnInit, OnChanges {
     onTouchMove(event: any): void;
     onTouchEnd(event: any): void;
     constructor(render: Renderer2, elRef: ElementRef);
-    private getContainerRatios();
-    private zoomIntoContainer(zoomPoint, ratios, zoomStep, external?);
+    private zoomIntoContainer(zoomPoint, zoomStep, external?);
     private getScrollHandleSize(direction);
     private setNewZoomLevel(zoomStep, external);
     private getTargetCenter();
-    private getCenterDeviation(center, zoomPoint, ratio, zoomStep);
+    private getCenterDeviation(center, zoomPoint, zoomStep);
     private scroll(direction, value);
     private defineZoomTarget();
     private resetEventLockTimout();
